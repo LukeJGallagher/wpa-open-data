@@ -1,0 +1,7 @@
+# Build output (regenerated in CI, never committed)
+public_api/
+data/
+__pycache__/
+*.pyc
+.env
+.streamlit/secrets.toml

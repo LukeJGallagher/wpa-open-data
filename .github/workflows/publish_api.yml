@@ -1,0 +1,63 @@
+name: Publish open data API to GitHub Pages
+
+# Clean public repo: builds a read-only static API (non-sensitive tables only)
+# and deploys it to GitHub Pages. Pulls the latest parquet from Azure Blob at
+# build time - no data is stored in this repo.
+
+on:
+  schedule:
+    # Sunday 04:00 UTC - a couple of hours after the private repo's weekly scrape
+    - cron: '0 4 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas pyarrow azure-storage-blob
+
+      - name: Pull latest parquet from Azure Blob
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          python - <<'PY'
+          import azure_blob_storage as az
+          for name in ["results", "rankings", "records", "mes_qualification",
+                       "championship_standards", "games_results"]:
+              try:
+                  az.download_parquet(f"{name}.parquet", use_cache=True)
+                  print("downloaded", name)
+              except Exception as e:
+                  print("skip", name, e)
+          PY
+
+      - name: Build the static API
+        run: python build_public_api.py --out public_api
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public_api
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
