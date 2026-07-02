@@ -31,9 +31,14 @@ import os
 import io
 import pandas as pd
 from pathlib import Path
-from dotenv import load_dotenv
 
-load_dotenv()
+# python-dotenv only loads a local .env (useless in CI). Optional so this module
+# imports fine without it - the connection string comes from the env / secret.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # Try to import Azure storage - optional for local development
 try:
