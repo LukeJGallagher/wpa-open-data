@@ -33,7 +33,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install pandas pyarrow azure-storage-blob
+        run: pip install pandas pyarrow azure-storage-blob python-dotenv requests
 
       - name: Pull latest parquet from Azure Blob
         env:
